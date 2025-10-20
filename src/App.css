@@ -36,3 +36,19 @@
     transform: rotate(360deg);
   }
 }
+
+/* Agrega esto en tu App.css */
+.rotate-180 {
+  transform: rotate(180deg);
+  transition: transform 0.2s ease;
+}
+
+.dropdown-menu {
+  z-index: 1000;
+  min-width: 200px;
+}
+
+/* Estilos para las tarjetas */
+.bg-opacity-10 {
+  background-color: rgba(var(--bs-primary-rgb), 0.1) !important;
+}

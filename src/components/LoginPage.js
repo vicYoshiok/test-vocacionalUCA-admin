@@ -15,6 +15,7 @@ const LoginPage = ({ onLogin }) => {
     localStorage.setItem("token", data.token);
     localStorage.setItem("user", JSON.stringify(data.user));
     onLogin(data.user);
+    navigate("/admin");
   } catch (err) {
     alert(err.message);
   }

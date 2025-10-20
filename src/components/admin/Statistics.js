@@ -38,7 +38,7 @@ const Statistics = ({ stats }) => {
                   <h3 className={`text-${stat.color} fw-bold`}>{stat.value}</h3>
                   <small className="text-muted">{stat.description}</small>
                 </div>
-                <div className={`stat-icon bg-${stat.color}`}>
+                <div className={`stat-icon`}>
                   <i className={`bi ${stat.icon}`}></i>
                 </div>
               </div>
