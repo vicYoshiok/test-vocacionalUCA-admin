@@ -52,3 +52,25 @@
 .bg-opacity-10 {
   background-color: rgba(var(--bs-primary-rgb), 0.1) !important;
 }
+
+/* Estilos para el modal personalizado */
+.modal-backdrop {
+  z-index: 1040;
+}
+
+.modal-content {
+  z-index: 1050;
+}
+
+/* Asegurar que los botones de cierre tengan buen estilo */
+.btn-close-custom {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  color: #000;
+  cursor: pointer;
+}
+
+.btn-close-custom:hover {
+  color: #666;
+}

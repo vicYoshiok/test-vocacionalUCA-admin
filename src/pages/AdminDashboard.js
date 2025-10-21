@@ -1,26 +1,64 @@
-// src/pages/AdminDashboard.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Dashboard from '../components/admin/Dashboard';
+import RegistroUsuario from '../components/RegistroUsuario';
+import { adminAPI } from '../services/api';
 
 const AdminDashboard = ({ onLogout }) => {
   const navigate = useNavigate();
+  const [showRegister, setShowRegister] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [admins, setAdmins] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showAdmins, setShowAdmins] = useState(false); // Para mostrar/ocultar la lista
   
   // Obtener datos del usuario desde localStorage
   const user = JSON.parse(localStorage.getItem("user"));
 
+  // Cargar lista de administradores
+  const loadAdmins = async () => {
+    setLoading(true);
+    try {
+      const data = await adminAPI.getAdmins();
+      setAdmins(data.admins || []);
+    } catch (error) {
+      console.error('Error cargando administradores:', error);
+      alert('Error al cargar la lista de administradores');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Eliminar administrador
+  const handleDeleteAdmin = async (adminId, adminName) => {
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar al administrador "${adminName}"?`)) {
+      return;
+    }
+
+    try {
+      await adminAPI.deleteAdmin(adminId);
+      alert('Administrador eliminado exitosamente');
+      loadAdmins(); // Recargar la lista
+    } catch (error) {
+      console.error('Error eliminando administrador:', error);
+      alert(error.message || 'Error al eliminar el administrador');
+    }
+  };
+
+  useEffect(() => {
+    if (showAdmins) {
+      loadAdmins();
+    }
+  }, [showAdmins]);
+
   const handleLogout = () => {
-    // Limpiar localStorage
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     
-    // Llamar a la función de logout si existe
     if (onLogout) {
       onLogout();
     }
     
-    // Redirigir al login
     navigate("/login");
   };
 
@@ -28,14 +66,12 @@ const AdminDashboard = ({ onLogout }) => {
     setShowDropdown(!showDropdown);
   };
 
-  // Cerrar dropdown si se hace clic fuera de él
   const handleClickOutside = (e) => {
     if (!e.target.closest('.dropdown')) {
       setShowDropdown(false);
     }
   };
 
-  // Agregar event listener para cerrar el dropdown
   React.useEffect(() => {
     document.addEventListener('click', handleClickOutside);
     return () => {
@@ -71,7 +107,29 @@ const AdminDashboard = ({ onLogout }) => {
               </div>
             </div>
             
-            {/* Dropdown personalizado para cerrar sesión */}
+            {/* Botón para mostrar/ocultar lista de admins */}
+            <button 
+              className="btn btn-info me-2 d-flex align-items-center"
+              onClick={() => setShowAdmins(!showAdmins)}
+              style={{ fontSize: "0.9rem" }}
+            >
+              <i className={`bi ${showAdmins ? 'bi-eye-slash' : 'bi-people'} me-1`}></i>
+              <span className="d-none d-sm-inline">
+                {showAdmins ? 'Ocultar Admins' : 'Ver Admins'}
+              </span>
+            </button>
+            
+            {/* Botón para registrar nuevo admin */}
+            <button 
+              className="btn btn-success me-2 d-flex align-items-center"
+              onClick={() => setShowRegister(true)}
+              style={{ fontSize: "0.9rem" }}
+            >
+              <i className="bi bi-person-plus me-1"></i>
+              <span className="d-none d-sm-inline">Nuevo Admin</span>
+            </button>
+            
+            {/* Dropdown personalizado */}
             <div className="dropdown">
               <button 
                 className="btn btn-outline-primary d-flex align-items-center" 
@@ -88,7 +146,6 @@ const AdminDashboard = ({ onLogout }) => {
                 <i className={`bi bi-chevron-down ms-2 ${showDropdown ? 'rotate-180' : ''}`}></i>
               </button>
               
-              {/* Menú desplegable */}
               {showDropdown && (
                 <div className="dropdown-menu show position-absolute end-0 mt-2 shadow border-0 rounded">
                   <div className="dropdown-header text-dark py-2">
@@ -113,80 +170,126 @@ const AdminDashboard = ({ onLogout }) => {
         </div>
       </nav>
 
-      {/* Contenido principal */}
-<main className="container-fluid py-4">
-  {/* Tarjeta de información del usuario */}
-  <div className="row mb-4">
-    <div className="col-12">
-      <div className="card border-0 shadow-sm">
-        <div className="card-header text-white border-0" style={{ backgroundColor: "#3498DB" }}>
-          <div className="d-flex align-items-center">
-            <i className="bi bi-person-badge me-3 fs-4"></i>
-            <div>
-              <h5 className="card-title mb-0">¡Hola! {user?.name || 'No disponible'}</h5>
+      {/* Modal de registro */}
+      {showRegister && (
+        <RegistroUsuario 
+          onClose={() => setShowRegister(false)}
+          onUserRegistered={(newUser) => {
+            console.log('Nuevo administrador registrado:', newUser);
+            setShowRegister(false);
+            loadAdmins(); // Recargar la lista después de registrar
+          }}
+        />
+      )}
+
+      {/* Lista de administradores */}
+      {showAdmins && (
+        <div className="container-fluid py-3">
+          <div className="row">
+            <div className="col-12">
+              <div className="card shadow-sm">
+                <div className="card-header bg-light d-flex justify-content-between align-items-center">
+                  <h5 className="card-title mb-0">
+                    <i className="bi bi-people me-2"></i>
+                    Administradores Registrados
+                  </h5>
+                  <div>
+                    <button 
+                      className="btn btn-outline-primary btn-sm me-2"
+                      onClick={loadAdmins}
+                      disabled={loading}
+                    >
+                      <i className="bi bi-arrow-repeat me-1"></i>
+                      Actualizar
+                    </button>
+                    <button 
+                      className="btn btn-outline-secondary btn-sm"
+                      onClick={() => setShowAdmins(false)}
+                    >
+                      <i className="bi bi-x me-1"></i>
+                      Cerrar
+                    </button>
+                  </div>
+                </div>
+                <div className="card-body">
+                  {loading ? (
+                    <div className="text-center py-3">
+                      <div className="spinner-border text-primary" role="status">
+                        <span className="visually-hidden">Cargando...</span>
+                      </div>
+                      <p className="mt-2 text-muted">Cargando administradores...</p>
+                    </div>
+                  ) : (
+                    <div className="table-responsive">
+                      <table className="table table-hover">
+                        <thead>
+                          <tr>
+                            <th>Nombre</th>
+                            <th>Email</th>
+                            <th>Fecha de Registro</th>
+                            <th>Acciones</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {admins.length === 0 ? (
+                            <tr>
+                              <td colSpan="4" className="text-center text-muted py-3">
+                                No hay administradores registrados
+                              </td>
+                            </tr>
+                          ) : (
+                            admins.map(admin => (
+                              <tr key={admin.id}>
+                                <td className="align-middle">
+                                  <div className="d-flex align-items-center">
+                                    <i className="bi bi-person-circle me-2 text-primary"></i>
+                                    {admin.name}
+                                    {admin.id === user?.id && (
+                                      <span className="badge bg-primary ms-2">Tú</span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="align-middle">{admin.email}</td>
+                                <td className="align-middle">
+                                  {new Date(admin.created_at).toLocaleDateString('es-MX')}
+                                </td>
+                                <td className="align-middle">
+                                  {admin.id !== user?.id ? (
+                                    <button 
+                                      className="btn btn-outline-danger btn-sm"
+                                      onClick={() => handleDeleteAdmin(admin.id, admin.name)}
+                                      title="Eliminar administrador"
+                                    >
+                                      <i className="bi bi-trash"></i>
+                                      <span className="d-none d-md-inline ms-1">Eliminar</span>
+                                    </button>
+                                  ) : (
+                                    <span className="text-muted small">Cuenta actual</span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
-        <div className="card-body">
-          <div className="row align-items-center">
-            {/* Información del usuario en una sola fila */}
-            <div className="col-md-4">
-              <div className="d-flex align-items-center">
-                <div className="bg-primary bg-opacity-10 p-3 rounded me-3 text-center" style={{ minWidth: "60px" }}>
-                  <i className="bi bi-person text-primary fs-4"></i>
-                </div>
-                <div>
-                  <small className="text-muted d-block">Nombre completo</small>
-                  <p className="mb-0 fw-bold text-dark fs-6">{user?.name || 'No disponible'}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="col-md-4">
-              <div className="d-flex align-items-center">
-                <div className="bg-primary bg-opacity-10 p-3 rounded me-3 text-center" style={{ minWidth: "60px" }}>
-                  <i className="bi bi-envelope text-primary fs-4"></i>
-                </div>
-                <div>
-                  <small className="text-muted d-block">Correo electrónico</small>
-                  <p className="mb-0 fw-bold text-dark fs-6">{user?.email || 'No disponible'}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="col-md-4">
-              <div className="d-flex align-items-center">
-                <div className="bg-info bg-opacity-10 p-3 rounded me-3 text-center" style={{ minWidth: "60px" }}>
-                  <i className="bi bi-calendar-check text-info fs-4"></i>
-                </div>
-                <div>
-                  <small className="text-muted d-block">Fecha de ingreso</small>
-                  <p className="mb-0 fw-bold text-dark fs-6">
-                    {new Date().toLocaleDateString('es-MX', { 
-                      day: 'numeric',
-                      month: 'short', 
-                      year: 'numeric' 
-                    })}
-                  </p>
-                </div>
-              </div>
-            </div>
+      )}
+
+      {/* Contenido principal del dashboard */}
+      <main className="container-fluid py-4">
+        <div className="row">
+          <div className="col-12">
+            <Dashboard />
           </div>
-
         </div>
-      </div>
-    </div>
-  </div>
-  
-  {/* Componente Dashboard */}
-  <div className="row">
-    <div className="col-12">
-      <Dashboard />
-    </div>
-  </div>
-</main>
+      </main>
 
-      {/* Footer */}
       <footer className="bg-dark text-white text-center py-3 mt-5">
         <div className="container">
           <small>
